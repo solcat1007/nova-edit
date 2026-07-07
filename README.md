@@ -1,3 +1,14 @@
+---
+AIGC:
+    Label: "1"
+    ContentProducer: 001191440300708461136T1XGW3
+    ProduceID: 50b092e4f392f7690eb78912e14c5fd6_9b84767f799a11f1b3d35254007bceed
+    ReservedCode1: ZpcXz5N308uEODkFY5Bb/2IxAb0BcKhBR+xCZR5m1b5LhiNVRu1hKAH/xrkz9x5TOE7DuBhXE1XGSLlKmTXvyMjl0kwzBC0CZO2gBztGUVQuZ9Dh9sp+GzBtgdO8xXNVE3BlWQvzjcaV8L2gbOJBEnhqhUglHQ7iE9NMgDK6qHzuVWI8y2myPpfh2SE=
+    ContentPropagator: 001191440300708461136T1XGW3
+    PropagateID: 50b092e4f392f7690eb78912e14c5fd6_9b84767f799a11f1b3d35254007bceed
+    ReservedCode2: ZpcXz5N308uEODkFY5Bb/2IxAb0BcKhBR+xCZR5m1b5LhiNVRu1hKAH/xrkz9x5TOE7DuBhXE1XGSLlKmTXvyMjl0kwzBC0CZO2gBztGUVQuZ9Dh9sp+GzBtgdO8xXNVE3BlWQvzjcaV8L2gbOJBEnhqhUglHQ7iE9NMgDK6qHzuVWI8y2myPpfh2SE=
+---
+
 # Nova Edit（新星剪辑）
 
 > AI 驱动的下一代智能视频剪辑软件 — 原型验证阶段
@@ -143,3 +154,4 @@ Nova Edit 采用六层分层架构：
 ---
 
 > Nova Edit Team | 2026
+*（内容由AI生成，仅供参考）*
