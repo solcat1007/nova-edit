@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nova Edit - 新星剪辑 | 概念版</title>
+  <style>
+    /* ============================================================
+       CSS Variables — 统一管理配色方案
+       深色主题主色调 #1a1a2e，强调色 #e94560
+    ============================================================ */
+    :root {
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --bg-tertiary: #0f3460;
+      --bg-panel: #1e1e32;
+      --bg-track: #181828;
+      --bg-input: #252540;
+      --text-primary: #e0e0e0;
+      --text-secondary: #a0a0b8;
+      --text-muted: #6a6a80;
+      --accent: #e94560;
+      --accent-hover: #ff6b81;
+      --accent-glow: rgba(233, 69, 96, 0.3);
+      --border: #2a2a44;
+      --border-light: #3a3a55;
+      --success: #4ade80;
+      --warning: #f59e0b;
+      --info: #38bdf8;
+      --timeline-bg: #111122;
+      --playhead: #e94560;
+      --track-video1: #4a90d9;
+      --track-video2: #7b68ee;
+      --track-audio1: #4ade80;
+      --track-audio2: #f59e0b;
+      --track-subtitle: #e94560;
+      --track-fx: #a855f7;
+      --scrollbar-thumb: #3a3a55;
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      --radius: 6px;
+      --radius-sm: 4px;
+      --transition: 0.2s ease;
+    }
+
+    /* ============================================================
+       Reset & Base — 全局重置与基础样式
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+      font-size: 13px;
+      color: var(--text-primary);
+      background: var(--bg-primary);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+    /* ============================================================
+       整体布局 — CSS Grid 主框架
+    ============================================================ */
+    .app {
+      display: grid;
+      grid-template-rows: 40px 1fr 28px;
+      grid-template-columns: 240px 1fr 260px;
+      grid-template-areas:
+        "menubar menubar menubar"
+        "left    center  right"
+        "status  status  status";
+      height: 100vh;
+      width: 100vw;
+    }
+    /* 小白模式下的布局微调 */
+    .app.simple-mode { grid-template-columns: 200px 1fr 220px; }
+
+    /* ============================================================
+       顶部菜单栏 — Menubar
+    ============================================================ */
+    .menubar {
+      grid-area: menubar;
+      display: flex;
+      align-items: center;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0 12px;
+      gap: 4px;
+      z-index: 100;
+    }
+    .menubar .logo {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-right: 16px;
+      white-space: nowrap;
+      letter-spacing: 0.5px;
+    }
+    .menubar .logo span { color: var(--text-secondary); font-weight: 400; }
+    .menu-item {
+      position: relative;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: var(--transition);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .menu-item:hover { background: var(--bg-input); color: var(--text-primary); }
+    .menu-item.active { color: var(--accent); }
+    /* 菜单下拉模拟 */
+    .menu-item .dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 180px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      z-index: 200;
+      padding: 4px 0;
+    }
+    .menu-item:hover .dropdown { display: block; }
+    .dropdown .dd-item {
+      padding: 7px 16px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 12px;
+      transition: var(--transition);
+    }
+    .dropdown .dd-item:hover { background: var(--bg-input); color: var(--text-primary); }
+    .dropdown .divider { height: 1px; background: var(--border); margin: 4px 0; }
+    /* 模式切换按钮 */
+    .mode-toggle {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-input);
+      border-radius: 20px;
+      padding: 2px;
+      border: 1px solid var(--border);
+    }
+    .mode-btn {
+      padding: 4px 14px;
+      border-radius: 18px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: var(--transition);
+      border: none;
+      color: var(--text-muted);
+      background: transparent;
+    }
+    .mode-btn.active {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+    .mode-btn:hover:not(.active) { color: var(--text-primary); }
+
+    /* ============================================================
+       左侧素材面板 — Media Panel
+    ============================================================ */
+    .media-panel {
+      grid-area: left;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .media-panel .panel-header {
+      padding: 10px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    /* 分类标签 */
+    .media-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+    .media-tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 4px 6px;
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--text-muted);
+      transition: var(--transition);
+      border-bottom: 2px solid transparent;
+      position: relative;
+    }
+    .media-tab:hover { color: var(--text-secondary); }
+    .media-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .media-tab .tab-badge {
+      display: inline-block;
+      background: var(--bg-input);
+      border-radius: 10px;
+      padding: 0px 6px;
+      font-size: 10px;
+      margin-left: 3px;
+      color: var(--text-muted);
+    }
+    /* 素材缩略图网格 */
+    .media-grid {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      align-content: start;
+    }
+    .media-thumb {
+      aspect-ratio: 16/10;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+      border: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .media-thumb:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+    .media-thumb .thumb-label {
+      position: absolute;
+      bottom: 4px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 9px;
+      color: #fff;
+      background: rgba(0,0,0,0.6);
+      padding: 2px 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .media-thumb .thumb-icon {
+      font-size: 28px;
+      opacity: 0.7;
+    }
+    .media-thumb .thumb-duration {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      font-size: 9px;
+      color: #fff;
+      background: rgba(0,0,0,0.7);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    /* 图片素材的方形缩略图 */
+    .media-thumb.img-thumb { aspect-ratio: 1/1; }
+
+    /* ============================================================
+       中央区域 — Center Area (预览 + 时间轴)
+    ============================================================ */
+    .center-area {
+      grid-area: center;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg-primary);
+    }
+    /* 预览区 */
+    .preview-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      position: relative;
+      min-height: 0;
+    }
+    /* 预览悬浮发光边框 */
+    .preview-container.glow {
+      box-shadow: inset 0 0 40px var(--accent-glow), inset 0 0 80px rgba(233,69,96,0.1);
+    }
+    .preview-window {
+      width: 100%;
+      max-width: 720px;
+      aspect-ratio: 16/9;
+      background: #000;
+      border-radius: var(--radius);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+      border: 1px solid var(--border);
+    }
+    /* 预览画面内容 */
+    .preview-window .preview-content {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    }
+    .preview-window .preview-content .preview-scene {
+      text-align: center;
+    }
+    .preview-window .preview-content .preview-scene .scene-icon {
+      font-size: 64px;
+      opacity: 0.3;
+      line-height: 1;
+    }
+    .preview-window .preview-content .preview-scene .scene-text {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+    /* 水印 */
+    .preview-window .watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-20deg);
+      font-size: 48px;
+      font-weight: 900;
+      color: rgba(255,255,255,0.04);
+      pointer-events: none;
+      letter-spacing: 8px;
+    }
+    /* 安全框 */
+    .preview-window .safe-frame {
+      position: absolute;
+      top: 5%;
+      left: 5%;
+      right: 5%;
+      bottom: 5%;
+      border: 1px dashed rgba(255,255,255,0.08);
+      border-radius: 2px;
+      pointer-events: none;
+    }
+    /* 播放控制条 */
+    .playback-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      height: 44px;
+    }
+    .ctrl-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid var(--border-light);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: var(--transition);
+      flex-shrink: 0;
+    }
+    .ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .ctrl-btn.play-btn {
+      width: 36px;
+      height: 36px;
+      font-size: 16px;
+      background: var(--accent);
+      border: none;
+      color: #fff;
+    }
+    .ctrl-btn.play-btn:hover { background: var(--accent-hover); }
+    .ctrl-btn.playing { background: var(--bg-input); border: 1px solid var(--accent); color: var(--accent); }
+    .timecode {
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      font-size: 14px;
+      color: var(--text-primary);
+      min-width: 100px;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+    .progress-bar-wrap {
+      flex: 1;
+      height: 6px;
+      background: var(--bg-track);
+      border-radius: 3px;
+      cursor: pointer;
+      position: relative;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 3px;
+      transition: width 0.05s linear;
+    }
+
+    /* ============================================================
+       时间轴轨道区域 — Timeline
+    ============================================================ */
+    .timeline-container {
+      height: 220px;
+      background: var(--timeline-bg);
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: height 0.3s ease;
+    }
+    .app.simple-mode .timeline-container { height: 150px; }
+    /* 时间轴工具栏 */
+    .timeline-toolbar {
+      display: flex;
+      align-items: center;
+      padding: 4px 12px;
+      gap: 8px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      height: 32px;
+    }
+    .tl-btn {
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 11px;
+      transition: var(--transition);
+    }
+    .tl-btn:hover { background: var(--bg-input); color: var(--text-primary); }
+    .tl-btn.active { background: var(--bg-input); border-color: var(--border-light); color: var(--accent); }
+    /* 缩放滑块 */
+    .zoom-slider {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .zoom-slider input[type="range"] {
+      width: 80px;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--bg-track);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    .zoom-slider input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    /* 时间刻度标尺 */
+    .time-ruler {
+      height: 22px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .time-ruler .ruler-mark {
+      position: absolute;
+      bottom: 4px;
+      font-size: 9px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .time-ruler .ruler-tick {
+      position: absolute;
+      bottom: 0;
+      width: 1px;
+      background: var(--border-light);
+    }
+    .time-ruler .ruler-tick.major { height: 10px; }
+    .time-ruler .ruler-tick.minor { height: 5px; }
+    /* 轨道区域 */
+    .tracks-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+    }
+    /* 播放头 */
+    .playhead {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--playhead);
+      z-index: 50;
+      pointer-events: none;
+    }
+    .playhead::before {
+      content: '';
+      position: absolute;
+      top: -6px;
+      left: -7px;
+      width: 16px;
+      height: 12px;
+      background: var(--playhead);
+      clip-path: polygon(0 0, 100% 0, 50% 100%);
+      z-index: 51;
+      pointer-events: auto;
+      cursor: ew-resize;
+    }
+    /* 轨道行 */
+    .track-row {
+      display: flex;
+      align-items: stretch;
+      border-bottom: 1px solid var(--border);
+      min-height: 36px;
+      position: relative;
+    }
+    .track-row.fx-row, .track-row.sub-row { min-height: 28px; }
+    .track-label {
+      width: 50px;
+      min-width: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      flex-shrink: 0;
+      text-align: center;
+    }
+    .track-content {
+      flex: 1;
+      position: relative;
+      background: var(--bg-track);
+      cursor: pointer;
+    }
+    .track-content:hover { background: #1a1a30; }
+    /* 剪辑片段 */
+    .clip {
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: box-shadow 0.15s ease;
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      font-size: 10px;
+      color: #fff;
+      font-weight: 500;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .clip:hover { box-shadow: 0 0 8px rgba(255,255,255,0.15); filter: brightness(1.15); }
+    .clip.selected { outline: 2px solid #fff; outline-offset: 1px; }
+    .clip.v1 { background: var(--track-video1); }
+    .clip.v2 { background: var(--track-video2); }
+    .clip.a1 { background: var(--track-audio1); }
+    .clip.a2 { background: var(--track-audio2); }
+    .clip.sub { background: var(--track-subtitle); }
+    .clip.fx  { background: var(--track-fx); }
+    /* 高级轨道 — 小白模式下隐藏 */
+    .track-row.advanced { display: flex; }
+    .app.simple-mode .track-row.advanced { display: none; }
+
+    /* ============================================================
+       右侧工具面板 — Inspector Panel
+    ============================================================ */
+    .inspector {
+      grid-area: right;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .inspector-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+    .inspector-tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 4px 6px;
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--text-muted);
+      transition: var(--transition);
+      border-bottom: 2px solid transparent;
+    }
+    .inspector-tab:hover { color: var(--text-secondary); }
+    .inspector-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    /* 面板内容区 */
+    .inspector-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+    }
+    .inspector-content .section { display: none; }
+    .inspector-content .section.active { display: block; }
+    /* 属性组 */
+    .prop-group {
+      margin-bottom: 14px;
+    }
+    .prop-group .group-title {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .prop-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+      gap: 8px;
+    }
+    .prop-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      width: 42px;
+      flex-shrink: 0;
+    }
+    .prop-input {
+      flex: 1;
+      height: 26px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      padding: 0 8px;
+      font-size: 11px;
+      outline: none;
+      transition: var(--transition);
+    }
+    .prop-input:focus { border-color: var(--accent); }
+    .prop-input.small { width: 54px; flex: none; }
+    .prop-slider {
+      flex: 1;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--bg-track);
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .prop-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+    .prop-value { font-size: 10px; color: var(--text-muted); width: 32px; text-align: right; }
+    /* 特效卡片 */
+    .fx-card {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .fx-card:hover { border-color: var(--accent); background: #2a2a48; }
+    .fx-card .fx-preview {
+      width: 36px;
+      height: 24px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .fx-card .fx-name { color: var(--text-primary); flex: 1; }
+    .fx-card .fx-tag {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      background: var(--bg-tertiary);
+      color: var(--info);
+    }
+    /* 导出预设 */
+    .export-preset {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .export-preset:hover { border-color: var(--accent); }
+    .export-preset .preset-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+    .export-preset .preset-detail { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    .export-btn {
+      width: 100%;
+      padding: 10px;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      margin-top: 6px;
+    }
+    .export-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+    /* ============================================================
+       底部状态栏 — Status Bar
+    ============================================================ */
+    .statusbar {
+      grid-area: status;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-muted);
+      gap: 16px;
+      height: 28px;
+    }
+    .statusbar .status-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .statusbar .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .statusbar .status-dot.green { background: var(--success); }
+    .statusbar .status-dot.warn { background: var(--warning); }
+    .statusbar .perf-meter {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .perf-bar {
+      width: 40px;
+      height: 8px;
+      background: var(--bg-track);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .perf-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    .perf-bar-fill.cpu { background: var(--info); }
+    .perf-bar-fill.mem { background: var(--success); }
+
+    /* ============================================================
+       工具提示
+    ============================================================ */
+    .tooltip {
+      position: absolute;
+      background: #000;
+      color: #fff;
+      padding: 4px 8px;
+      font-size: 10px;
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 999;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       Nova Edit 主应用容器
+  ============================================================ -->
+  <div class="app" id="app">
+
+    <!-- ==================== 顶部菜单栏 ==================== -->
+    <header class="menubar">
+      <div class="logo">Nova Edit <span>新星剪辑</span></div>
+      <!-- 八个主菜单 -->
+      <div class="menu-item">
+        文件 ▾
+        <div class="dropdown">
+          <div class="dd-item">新建项目</div>
+          <div class="dd-item">打开项目...</div>
+          <div class="dd-item">保存项目</div>
+          <div class="divider"></div>
+          <div class="dd-item">导入素材</div>
+          <div class="dd-item">导出工程</div>
+          <div class="divider"></div>
+          <div class="dd-item">退出</div>
+        </div>
+      </div>
+      <div class="menu-item">
+        编辑 ▾
+        <div class="dropdown">
+          <div class="dd-item">撤销</div>
+          <div class="dd-item">重做</div>
+          <div class="divider"></div>
+          <div class="dd-item">剪切</div>
+          <div class="dd-item">删除</div>
+          <div class="dd-item">波纹删除</div>
+        </div>
+      </div>
+      <div class="menu-item">
+        剪辑 ▾
+        <div class="dropdown">
+          <div class="dd-item">分割 (S)</div>
+          <div class="dd-item">修剪</div>
+          <div class="dd-item">变速</div>
+          <div class="divider"></div>
+          <div class="dd-item">嵌套序列</div>
+        </div>
+      </div>
+      <div class="menu-item">
+        调色 ▾
+        <div class="dropdown">
+          <div class="dd-item">自动调色</div>
+          <div class="dd-item">色轮</div>
+          <div class="dd-item">LUT</div>
+          <div class="dd-item">曲线</div>
+        </div>
+      </div>
+      <div class="menu-item">
+        特效 ▾
+        <div class="dropdown">
+          <div class="dd-item">视频特效</div>
+          <div class="dd-item">转场</div>
+          <div class="dd-item">粒子系统</div>
+        </div>
+      </div>
+      <div class="menu-item">
+        音频 ▾
+        <div class="dropdown">
+          <div class="dd-item">音量调节</div>
+          <div class="dd-item">降噪</div>
+          <div class="dd-item">均衡器</div>
+        </div>
+      </div>
+      <div class="menu-item">
+        字幕 ▾
+        <div class="dropdown">
+          <div class="dd-item">AI 语音识别</div>
+          <div class="dd-item">导入字幕</div>
+          <div class="dd-item">字幕样式</div>
+        </div>
+      </div>
+      <div class="menu-item">
+        发布 ▾
+        <div class="dropdown">
+          <div class="dd-item">渲染队列</div>
+          <div class="dd-item">一键发布</div>
+          <div class="divider"></div>
+          <div class="dd-item">YouTube</div>
+          <div class="dd-item">B站</div>
+          <div class="dd-item">抖音</div>
+        </div>
+      </div>
+      <!-- 双模式切换 -->
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="btnSimple" onclick="NovaEdit.toggleMode('simple')">小白模式</button>
+        <button class="mode-btn" id="btnPro" onclick="NovaEdit.toggleMode('pro')">专业模式</button>
+      </div>
+    </header>
+
+    <!-- ==================== 左侧素材面板 ==================== -->
+    <aside class="media-panel">
+      <div class="panel-header">素材库</div>
+      <!-- 四大分类标签 -->
+      <div class="media-tabs">
+        <div class="media-tab active" data-tab="video" onclick="NovaEdit.switchMediaTab('video')">
+          视频<span class="tab-badge">12</span>
+        </div>
+        <div class="media-tab" data-tab="audio" onclick="NovaEdit.switchMediaTab('audio')">
+          音频<span class="tab-badge">8</span>
+        </div>
+        <div class="media-tab" data-tab="image" onclick="NovaEdit.switchMediaTab('image')">
+          图片<span class="tab-badge">15</span>
+        </div>
+        <div class="media-tab" data-tab="fx" onclick="NovaEdit.switchMediaTab('fx')">
+          特效<span class="tab-badge">6</span>
+        </div>
+      </div>
+      <!-- 素材网格 -->
+      <div class="media-grid" id="mediaGrid">
+        <!-- 由 JS 动态生成 -->
+      </div>
+    </aside>
+
+    <!-- ==================== 中央区域 ==================== -->
+    <main class="center-area">
+      <!-- 预览容器 -->
+      <div class="preview-container" id="previewContainer">
+        <div class="preview-window" id="previewWindow">
+          <div class="preview-content">
+            <div class="preview-scene">
+              <div class="scene-icon">&#9654;</div>
+              <div class="scene-text">拖入素材开始剪辑</div>
+            </div>
+          </div>
+          <div class="watermark">NOVA EDIT</div>
+          <div class="safe-frame"></div>
+        </div>
+      </div>
+      <!-- 播放控制条 -->
+      <div class="playback-controls">
+        <button class="ctrl-btn" title="跳到开头" onclick="NovaEdit.goToStart()">&#9198;</button>
+        <button class="ctrl-btn" title="后退一帧" onclick="NovaEdit.stepBack()">&#9194;</button>
+        <button class="ctrl-btn play-btn" id="playBtn" title="播放/暂停" onclick="NovaEdit.togglePlay()">&#9654;</button>
+        <button class="ctrl-btn" title="前进一帧" onclick="NovaEdit.stepForward()">&#9193;</button>
+        <button class="ctrl-btn" title="跳到结尾" onclick="NovaEdit.goToEnd()">&#9197;</button>
+        <span class="timecode" id="timecode">00:00:00:00</span>
+        <div class="progress-bar-wrap" id="progressBar" onclick="NovaEdit.seekProgress(event)">
+          <div class="progress-bar-fill" id="progressFill" style="width: 0%;"></div>
+        </div>
+        <span class="timecode" id="durationDisplay">00:00:05:00</span>
+      </div>
+      <!-- 时间轴 -->
+      <div class="timeline-container" id="timelineContainer">
+        <!-- 工具栏 -->
+        <div class="timeline-toolbar">
+          <button class="tl-btn active" title="吸附">吸附</button>
+          <button class="tl-btn" title="链接选择">链接</button>
+          <button class="tl-btn" title="分割">分割</button>
+          <button class="tl-btn" title="修剪模式">修剪</button>
+          <button class="tl-btn" title="标记点">标记</button>
+          <div class="zoom-slider">
+            <span>缩放</span>
+            <input type="range" min="1" max="20" value="8" id="zoomSlider" oninput="NovaEdit.updateZoom()">
+          </div>
+        </div>
+        <!-- 时间刻度标尺 -->
+        <div class="time-ruler" id="timeRuler">
+          <!-- 由 JS 动态生成刻度 -->
+        </div>
+        <!-- 轨道区域 -->
+        <div class="tracks-scroll" id="tracksScroll">
+          <!-- 播放头 -->
+          <div class="playhead" id="playhead" style="left: 50px;" onmousedown="NovaEdit.startDragPlayhead(event)"></div>
+          <!-- V1 — 视频轨 1 -->
+          <div class="track-row">
+            <div class="track-label">V1</div>
+            <div class="track-content">
+              <div class="clip v1" style="left: 16px; width: 120px;" onclick="NovaEdit.selectClip(this, '片头动画')">片头动画</div>
+              <div class="clip v1" style="left: 160px; width: 200px;" onclick="NovaEdit.selectClip(this, '主镜头 A')">主镜头 A</div>
+              <div class="clip v1" style="left: 380px; width: 150px;" onclick="NovaEdit.selectClip(this, '转场B-roll')">转场B-roll</div>
+              <div class="clip v1" style="left: 550px; width: 180px;" onclick="NovaEdit.selectClip(this, '结尾画面')">结尾画面</div>
+            </div>
+          </div>
+          <!-- V2 — 视频轨 2（高级） -->
+          <div class="track-row advanced">
+            <div class="track-label" style="color:var(--track-video2);">V2</div>
+            <div class="track-content">
+              <div class="clip v2" style="left: 100px; width: 100px;" onclick="NovaEdit.selectClip(this, '画中画')">画中画</div>
+              <div class="clip v2" style="left: 400px; width: 120px;" onclick="NovaEdit.selectClip(this, '叠加层')">叠加层</div>
+            </div>
+          </div>
+          <!-- A1 — 音频轨 1 -->
+          <div class="track-row">
+            <div class="track-label" style="color:var(--track-audio1);">A1</div>
+            <div class="track-content">
+              <div class="clip a1" style="left: 16px; width: 520px;" onclick="NovaEdit.selectClip(this, '背景音乐')">背景音乐 - ambient_lofi.mp3</div>
+            </div>
+          </div>
+          <!-- A2 — 音频轨 2（高级） -->
+          <div class="track-row advanced">
+            <div class="track-label" style="color:var(--track-audio2);">A2</div>
+            <div class="track-content">
+              <div class="clip a2" style="left: 30px; width: 180px;" onclick="NovaEdit.selectClip(this, '音效1')">&#9834; 撞击音效</div>
+              <div class="clip a2" style="left: 300px; width: 160px;" onclick="NovaEdit.selectClip(this, '音效2')">&#9834; 过渡音效</div>
+            </div>
+          </div>
+          <!-- 字幕轨（高级） -->
+          <div class="track-row advanced sub-row">
+            <div class="track-label" style="color:var(--track-subtitle);">字幕</div>
+            <div class="track-content">
+              <div class="clip sub" style="left: 16px; width: 200px;" onclick="NovaEdit.selectClip(this, '开场字幕')">欢迎来到 Nova Edit</div>
+              <div class="clip sub" style="left: 350px; width: 200px;" onclick="NovaEdit.selectClip(this, '中段字幕')">全球最强剪辑软件</div>
+            </div>
+          </div>
+          <!-- 特效轨（高级） -->
+          <div class="track-row advanced fx-row">
+            <div class="track-label" style="color:var(--track-fx);">特效</div>
+            <div class="track-content">
+              <div class="clip fx" style="left: 60px; width: 80px;" onclick="NovaEdit.selectClip(this, '模糊转场')">模糊转场</div>
+              <div class="clip fx" style="left: 280px; width: 60px;" onclick="NovaEdit.selectClip(this, '闪白')">闪白</div>
+              <div class="clip fx" style="left: 460px; width: 60px;" onclick="NovaEdit.selectClip(this, '淡出')">淡出</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ==================== 右侧工具面板 ==================== -->
+    <aside class="inspector">
+      <div class="inspector-tabs">
+        <div class="inspector-tab active" data-panel="properties" onclick="NovaEdit.switchInspectorTab('properties')">属性</div>
+        <div class="inspector-tab" data-panel="effects" onclick="NovaEdit.switchInspectorTab('effects')">特效</div>
+        <div class="inspector-tab" data-panel="export" onclick="NovaEdit.switchInspectorTab('export')">导出</div>
+      </div>
+      <div class="inspector-content">
+        <!-- 属性面板 -->
+        <div class="section active" id="section-properties">
+          <div class="prop-group">
+            <div class="group-title">变换</div>
+            <div class="prop-row">
+              <span class="prop-label">缩放</span>
+              <input type="range" class="prop-slider" min="10" max="200" value="100" oninput="this.nextElementSibling.textContent=this.value+'%'">
+              <span class="prop-value">100%</span>
+            </div>
+            <div class="prop-row">
+              <span class="prop-label">旋转</span>
+              <input type="range" class="prop-slider" min="-180" max="180" value="0" oninput="this.nextElementSibling.textContent=this.value+'°'">
+              <span class="prop-value">0°</span>
+            </div>
+            <div class="prop-row">
+              <span class="prop-label">位置X</span>
+              <input class="prop-input small" type="text" value="960" onchange="NovaEdit.onPropChange()">
+            </div>
+            <div class="prop-row">
+              <span class="prop-label">位置Y</span>
+              <input class="prop-input small" type="text" value="540" onchange="NovaEdit.onPropChange()">
+            </div>
+            <div class="prop-row">
+              <span class="prop-label">透明度</span>
+              <input type="range" class="prop-slider" min="0" max="100" value="100" oninput="this.nextElementSibling.textContent=this.value+'%'">
+              <span class="prop-value">100%</span>
+            </div>
+          </div>
+          <div class="prop-group">
+            <div class="group-title">裁剪</div>
+            <div class="prop-row">
+              <span class="prop-label">左</span>
+              <input class="prop-input small" type="text" value="0">
+            </div>
+            <div class="prop-row">
+              <span class="prop-label">右</span>
+              <input class="prop-input small" type="text" value="0">
+            </div>
+            <div class="prop-row">
+              <span class="prop-label">上</span>
+              <input class="prop-input small" type="text" value="0">
+            </div>
+            <div class="prop-row">
+              <span class="prop-label">下</span>
+              <input class="prop-input small" type="text" value="0">
+            </div>
+          </div>
+        </div>
+        <!-- 特效面板 -->
+        <div class="section" id="section-effects">
+          <div class="prop-group">
+            <div class="group-title">转场</div>
+            <div class="fx-card">
+              <div class="fx-preview" style="background:linear-gradient(90deg,#4ade80,#a855f7);"></div>
+              <span class="fx-name">交叉溶解</span>
+              <span class="fx-tag">默认</span>
+            </div>
+            <div class="fx-card">
+              <div class="fx-preview" style="background:linear-gradient(90deg,#e94560,#f59e0b);"></div>
+              <span class="fx-name">模糊转场</span>
+              <span class="fx-tag">热门</span>
+            </div>
+            <div class="fx-card">
+              <div class="fx-preview" style="background:linear-gradient(90deg,#38bdf8,#4ade80);"></div>
+              <span class="fx-name">滑入滑出</span>
+            </div>
+            <div class="fx-card">
+              <div class="fx-preview" style="background:linear-gradient(90deg,#f59e0b,#e94560);"></div>
+              <span class="fx-name">闪白</span>
+            </div>
+          </div>
+          <div class="prop-group">
+            <div class="group-title">滤镜</div>
+            <div class="fx-card">
+              <div class="fx-preview" style="background:#8B7355;"></div>
+              <span class="fx-name">电影胶片</span>
+            </div>
+            <div class="fx-card">
+              <div class="fx-preview" style="background:#4A90D9;"></div>
+              <span class="fx-name">冷色调</span>
+            </div>
+            <div class="fx-card">
+              <div class="fx-preview" style="background:#E8A87C;"></div>
+              <span class="fx-name">复古暖色</span>
+            </div>
+            <div class="fx-card">
+              <div class="fx-preview" style="background:#2d2d2d;"></div>
+              <span class="fx-name">黑白电影</span>
+            </div>
+          </div>
+          <div class="prop-group">
+            <div class="group-title">粒子特效</div>
+            <div class="fx-card">
+              <div class="fx-preview" style="background:radial-gradient(circle,#fff,#a855f7);"></div>
+              <span class="fx-name">粒子爆炸</span>
+            </div>
+            <div class="fx-card">
+              <div class="fx-preview" style="background:radial-gradient(circle,#4ade80,#1a1a2e);"></div>
+              <span class="fx-name">光晕粒子</span>
+            </div>
+          </div>
+        </div>
+        <!-- 导出面板 -->
+        <div class="section" id="section-export">
+          <div class="prop-group">
+            <div class="group-title">分辨率</div>
+            <div class="export-preset" onclick="this.style.borderColor='var(--accent)'">
+              <div class="preset-name">1080p Full HD</div>
+              <div class="preset-detail">1920 x 1080 · 16:9 · H.264</div>
+            </div>
+            <div class="export-preset" onclick="this.style.borderColor='var(--accent)'">
+              <div class="preset-name">4K Ultra HD</div>
+              <div class="preset-detail">3840 x 2160 · 16:9 · H.265</div>
+            </div>
+            <div class="export-preset" onclick="this.style.borderColor='var(--accent)'">
+              <div class="preset-name">2K 竖屏</div>
+              <div class="preset-detail">1080 x 1920 · 9:16 · H.264</div>
+            </div>
+          </div>
+          <div class="prop-group">
+            <div class="group-title">平台预设</div>
+            <div class="export-preset" onclick="this.style.borderColor='var(--accent)'">
+              <div class="preset-name">B站 1080p 高码率</div>
+              <div class="preset-detail">1920x1080 · 30fps · 6Mbps · H.264</div>
+            </div>
+            <div class="export-preset" onclick="this.style.borderColor='var(--accent)'">
+              <div class="preset-name">YouTube 4K</div>
+              <div class="preset-detail">3840x2160 · 60fps · 45Mbps · H.265</div>
+            </div>
+            <div class="export-preset" onclick="this.style.borderColor='var(--accent)'">
+              <div class="preset-name">抖音竖屏</div>
+              <div class="preset-detail">1080x1920 · 30fps · 3Mbps · H.264</div>
+            </div>
+          </div>
+          <button class="export-btn" onclick="NovaEdit.exportVideo()">开始导出</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==================== 底部状态栏 ==================== -->
+    <footer class="statusbar">
+      <div class="status-item">
+        <span class="status-dot green"></span> 项目：未命名项目
+      </div>
+      <div class="status-item">分辨率：1920×1080</div>
+      <div class="status-item">帧率：30fps</div>
+      <div class="status-item">总时长：00:00:05:00</div>
+      <div class="perf-meter" style="margin-left:auto;">
+        <span>CPU</span>
+        <div class="perf-bar"><div class="perf-bar-fill cpu" style="width:38%;"></div></div>
+        <span style="width:28px;text-align:right;">38%</span>
+      </div>
+      <div class="perf-meter">
+        <span>MEM</span>
+        <div class="perf-bar"><div class="perf-bar-fill mem" style="width:52%;"></div></div>
+        <span style="width:28px;text-align:right;">52%</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ============================================================
+       JavaScript 逻辑模块 — NovaEdit 命名空间 (IIFE)
+  ============================================================ -->
+  <script>
+    /**
+     * NovaEdit — 新星剪辑概念版 Demo
+     * 全局命名空间，所有交互逻辑统一管理
+     */
+    const NovaEdit = (function() {
+      'use strict';
+
+      /* ---- 内部状态 ---- */
+      var state = {
+        isPlaying: false,           // 是否正在播放
+        isProMode: false,           // 是否为专业模式（默认小白模式）
+        currentTime: 0,             // 当前播放时间（秒）
+        duration: 5,                // 总时长（秒）
+        fps: 30,                    // 帧率
+        playInterval: null,         // 播放定时器 ID
+        activeMediaTab: 'video',    // 当前素材面板分类
+        activeInspectorTab: 'properties', // 当前右侧面板
+        zoomLevel: 8,              // 时间轴缩放级别
+        playheadPos: 50,           // 播放头像素位置
+        selectedClip: null,         // 当前选中的剪辑片段
+        isDragging: false,          // 是否正在拖拽播放头
+        dragStartX: 0,             // 拖拽起始X坐标
+        dragStartPos: 0            // 拖拽起始播放头位置
+      };
+
+      /* ============================================================
+         素材数据 — 模拟素材库
+         每个分类包含若干素材，用彩色占位块模拟缩略图
+      ============================================================ */
+      var mediaData = {
+        video: [
+          { name: '航拍镜头_01', color: '#4a90d9', duration: '00:12', icon: '&#9654;' },
+          { name: '采访片段_A', color: '#7b68ee', duration: '02:30', icon: '&#9654;' },
+          { name: '产品特写_03', color: '#e94560', duration: '00:45', icon: '&#9654;' },
+          { name: '街景延时', color: '#4ade80', duration: '00:30', icon: '&#9654;' },
+          { name: '片头动画', color: '#f59e0b', duration: '00:05', icon: '&#9654;' },
+          { name: 'B-roll合集', color: '#38bdf8', duration: '01:20', icon: '&#9654;' },
+          { name: '慢动作镜头', color: '#a855f7', duration: '00:18', icon: '&#9654;' },
+          { name: '无人机跟拍', color: '#ec4899', duration: '00:55', icon: '&#9654;' },
+          { name: '室内访谈', color: '#14b8a6', duration: '03:10', icon: '&#9654;' },
+          { name: '片尾字幕', color: '#f43f5e', duration: '00:08', icon: '&#9654;' },
+          { name: '城市夜景', color: '#8b5cf6', duration: '00:42', icon: '&#9654;' },
+          { name: '特写镜头', color: '#06b6d4', duration: '00:22', icon: '&#9654;' }
+        ],
+        audio: [
+          { name: '背景音乐_Lofi', color: '#4ade80', duration: '03:00', icon: '&#9835;' },
+          { name: '自然白噪音', color: '#38bdf8', duration: '05:00', icon: '&#9835;' },
+          { name: '打击音效包', color: '#f59e0b', duration: '00:15', icon: '&#9835;' },
+          { name: '过渡音效', color: '#a855f7', duration: '00:03', icon: '&#9835;' },
+          { name: '片头音效', color: '#e94560', duration: '00:05', icon: '&#9835;' },
+          { name: '旁白录音_01', color: '#ec4899', duration: '01:45', icon: '&#9835;' },
+          { name: '氛围合成器', color: '#14b8a6', duration: '02:30', icon: '&#9835;' },
+          { name: '鼓点Loop', color: '#f43f5e', duration: '00:30', icon: '&#9835;' }
+        ],
+        image: [
+          { name: '产品海报', color: '#e94560', icon: '&#9638;' },
+          { name: 'LOGO_白底', color: '#4a90d9', icon: '&#9638;' },
+          { name: '背景图_渐变', color: '#7b68ee', icon: '&#9638;' },
+          { name: '人物抠图_01', color: '#4ade80', icon: '&#9638;' },
+          { name: '图标素材包', color: '#f59e0b', icon: '&#9638;' },
+          { name: '纹理贴图', color: '#a855f7', icon: '&#9638;' },
+          { name: '参考图_调色', color: '#38bdf8', icon: '&#9638;' },
+          { name: '标题模板', color: '#ec4899', icon: '&#9638;' },
+          { name: '分镜草图', color: '#14b8a6', icon: '&#9638;' },
+          { name: '水印图层', color: '#f43f5e', icon: '&#9638;' },
+          { name: '封面设计', color: '#8b5cf6', icon: '&#9638;' },
+          { name: '字幕背景', color: '#06b6d4', icon: '&#9638;' },
+          { name: '遮罩图形', color: '#d946ef', icon: '&#9638;' },
+          { name: 'Logo动画帧', color: '#fb923c', icon: '&#9638;' },
+          { name: 'UI组件截图', color: '#22d3ee', icon: '&#9638;' }
+        ],
+        fx: [
+          { name: '粒子爆炸', color: '#a855f7', icon: '&#9883;' },
+          { name: '光晕效果', color: '#f59e0b', icon: '&#9883;' },
+          { name: '动态模糊', color: '#38bdf8', icon: '&#9883;' },
+          { name: '镜头抖动', color: '#e94560', icon: '&#9883;' },
+          { name: '色彩偏移', color: '#4ade80', icon: '&#9883;' },
+          { name: '故障特效', color: '#ec4899', icon: '&#9883;' }
+        ]
+      };
+
+      /* ============================================================
+         渲染素材网格
+         根据当前激活的分类标签渲染对应的素材缩略图
+      ============================================================ */
+      function renderMediaGrid() {
+        var grid = document.getElementById('mediaGrid');
+        var items = mediaData[state.activeMediaTab] || [];
+        var html = '';
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          var isImg = state.activeMediaTab === 'image';
+          var cls = isImg ? 'media-thumb img-thumb' : 'media-thumb';
+          html += '<div class="' + cls + '" style="background:' + item.color + ';" '
+               +  'onmouseenter="NovaEdit.onMediaHover(true)" onmouseleave="NovaEdit.onMediaHover(false)" '
+               +  'title="' + item.name + '">'
+               +  '<span class="thumb-icon">' + item.icon + '</span>'
+               +  '<span class="thumb-label">' + item.name + '</span>';
+          if (item.duration) {
+            html += '<span class="thumb-duration">' + item.duration + '</span>';
+          }
+          html += '</div>';
+        }
+        grid.innerHTML = html;
+      }
+
+      /* ============================================================
+         切换素材面板分类标签
+         @param {string} tabId - 分类标识 (video/audio/image/fx)
+      ============================================================ */
+      function switchMediaTab(tabId) {
+        state.activeMediaTab = tabId;
+        // 更新标签激活样式
+        var tabs = document.querySelectorAll('.media-tab');
+        for (var i = 0; i < tabs.length; i++) {
+          var tab = tabs[i];
+          if (tab.getAttribute('data-tab') === tabId) {
+            tab.classList.add('active');
+          } else {
+            tab.classList.remove('active');
+          }
+        }
+        renderMediaGrid();
+      }
+
+      /* ============================================================
+         素材悬停时预览区发光效果
+         @param {boolean} isHover - 是否悬停
+      ============================================================ */
+      function onMediaHover(isHover) {
+        var container = document.getElementById('previewContainer');
+        if (isHover) {
+          container.classList.add('glow');
+        } else {
+          container.classList.remove('glow');
+        }
+      }
+
+      /* ============================================================
+         切换右侧工具面板标签
+         @param {string} panelId - 面板标识 (properties/effects/export)
+      ============================================================ */
+      function switchInspectorTab(panelId) {
+        state.activeInspectorTab = panelId;
+        // 更新标签激活样式
+        var tabs = document.querySelectorAll('.inspector-tab');
+        for (var i = 0; i < tabs.length; i++) {
+          var tab = tabs[i];
+          if (tab.getAttribute('data-panel') === panelId) {
+            tab.classList.add('active');
+          } else {
+            tab.classList.remove('active');
+          }
+        }
+        // 切换面板内容区
+        var sections = document.querySelectorAll('.inspector-content .section');
+        for (var j = 0; j < sections.length; j++) {
+          sections[j].classList.remove('active');
+        }
+        var target = document.getElementById('section-' + panelId);
+        if (target) target.classList.add('active');
+      }
+
+      /* ============================================================
+         小白模式 / 专业模式切换
+         @param {string} mode - 'simple' 或 'pro'
+      ============================================================ */
+      function toggleMode(mode) {
+        var app = document.getElementById('app');
+        var btnSimple = document.getElementById('btnSimple');
+        var btnPro = document.getElementById('btnPro');
+        if (mode === 'simple') {
+          state.isProMode = false;
+          app.classList.add('simple-mode');
+          btnSimple.classList.add('active');
+          btnPro.classList.remove('active');
+        } else {
+          state.isProMode = true;
+          app.classList.remove('simple-mode');
+          btnPro.classList.add('active');
+          btnSimple.classList.remove('active');
+        }
+      }
+
+      /* ============================================================
+         播放 / 暂停切换
+      ============================================================ */
+      function togglePlay() {
+        var btn = document.getElementById('playBtn');
+        if (state.isPlaying) {
+          // 暂停
+          state.isPlaying = false;
+          btn.innerHTML = '&#9654;'; // 播放三角
+          btn.classList.remove('playing');
+          if (state.playInterval) {
+            clearInterval(state.playInterval);
+            state.playInterval = null;
+          }
+        } else {
+          // 播放
+          state.isPlaying = true;
+          btn.innerHTML = '&#9646;&#9646;'; // 暂停双竖线
+          btn.classList.add('playing');
+          var self = this;
+          state.playInterval = setInterval(function() {
+            if (state.currentTime >= state.duration) {
+              // 播放到结尾，停止
+              state.currentTime = state.duration;
+              NovaEdit.togglePlay();
+              NovaEdit.updatePlayhead();
+              return;
+            }
+            state.currentTime += 1 / state.fps;
+            NovaEdit.updatePlayhead();
+          }, 1000 / state.fps);
+        }
+      }
+
+      /* ============================================================
+         更新播放头位置和时间码显示
+      ============================================================ */
+      function updatePlayhead() {
+        var ratio = state.currentTime / state.duration;
+        var trackContent = document.querySelector('.track-content');
+        var totalWidth = trackContent ? trackContent.offsetWidth : 800;
+        var pos = ratio * totalWidth + 50; // 50 = 轨道标签宽度偏移
+        state.playheadPos = pos;
+        var playhead = document.getElementById('playhead');
+        if (playhead) playhead.style.left = pos + 'px';
+        // 更新进度条
+        var fill = document.getElementById('progressFill');
+        if (fill) fill.style.width = (ratio * 100) + '%';
+        // 更新时间码
+        updateTimecode();
+      }
+
+      /* ============================================================
+         更新时间码显示（HH:MM:SS:FF 格式）
+      ============================================================ */
+      function updateTimecode() {
+        var tc = document.getElementById('timecode');
+        if (!tc) return;
+        var t = state.currentTime;
+        var h = Math.floor(t / 3600);
+        var m = Math.floor((t % 3600) / 60);
+        var s = Math.floor(t % 60);
+        var f = Math.floor((t - Math.floor(t)) * state.fps);
+        tc.textContent =
+          (h < 10 ? '0' : '') + h + ':' +
+          (m < 10 ? '0' : '') + m + ':' +
+          (s < 10 ? '0' : '') + s + ':' +
+          (f < 10 ? '0' : '') + f;
+      }
+
+      /* ============================================================
+         跳到开头
+      ============================================================ */
+      function goToStart() {
+        state.currentTime = 0;
+        updatePlayhead();
+      }
+
+      /* ============================================================
+         跳到结尾
+      ============================================================ */
+      function goToEnd() {
+        state.currentTime = state.duration;
+        updatePlayhead();
+      }
+
+      /* ============================================================
+         后退一帧
+      ============================================================ */
+      function stepBack() {
+        state.currentTime = Math.max(0, state.currentTime - 1 / state.fps);
+        updatePlayhead();
+      }
+
+      /* ============================================================
+         前进一帧
+      ============================================================ */
+      function stepForward() {
+        state.currentTime = Math.min(state.duration, state.currentTime + 1 / state.fps);
+        updatePlayhead();
+      }
+
+      /* ============================================================
+         点击进度条跳转
+         @param {MouseEvent} e - 鼠标事件
+      ============================================================ */
+      function seekProgress(e) {
+        var bar = document.getElementById('progressBar');
+        var rect = bar.getBoundingClientRect();
+        var ratio = (e.clientX - rect.left) / rect.width;
+        ratio = Math.max(0, Math.min(1, ratio));
+        state.currentTime = ratio * state.duration;
+        updatePlayhead();
+      }
+
+      /* ============================================================
+         选中剪辑片段
+         @param {HTMLElement} el - 被点击的片段元素
+         @param {string} name - 片段名称
+      ============================================================ */
+      function selectClip(el, name) {
+        // 取消前一个选中状态
+        if (state.selectedClip) {
+          state.selectedClip.classList.remove('selected');
+        }
+        state.selectedClip = el;
+        el.classList.add('selected');
+        // 切换到属性面板
+        switchInspectorTab('properties');
+        // 更新属性面板中的素材名称（模拟）
+        var groups = document.querySelectorAll('.prop-group');
+        if (groups.length > 0) {
+          var firstTitle = groups[0].querySelector('.group-title');
+          if (firstTitle) firstTitle.textContent = '变换 — ' + name;
+        }
+      }
+
+      /* ============================================================
+         属性面板值变更时的视觉反馈
+      ============================================================ */
+      function onPropChange() {
+        // 概念 Demo — 属性变更时不做实际处理，仅保留交互框架
+      }
+
+      /* ============================================================
+         导出按钮点击
+      ============================================================ */
+      function exportVideo() {
+        alert('Nova Edit 概念版\n\n导出功能将在正式版中实现。\n预计支持 H.264/H.265/ProRes 等多种编码格式。');
+      }
+
+      /* ============================================================
+         生成时间刻度标尺
+      ============================================================ */
+      function buildTimeRuler() {
+        var ruler = document.getElementById('timeRuler');
+        var trackContent = document.querySelector('.track-content');
+        var totalWidth = trackContent ? trackContent.offsetWidth : 800;
+        var html = '';
+        var totalSec = state.duration;
+        var interval = 1; // 每秒一个刻度
+        for (var t = 0; t <= totalSec; t += interval) {
+          var left = 50 + (t / totalSec) * totalWidth; // 与轨道内容宽度对应
+          var label = t + 's';
+          html += '<div class="ruler-mark" style="left:' + left + 'px;">' + label + '</div>';
+          html += '<div class="ruler-tick major" style="left:' + left + 'px;"></div>';
+          // 0.5 秒刻度
+          if (t < totalSec) {
+            var halfLeft = left + (0.5 / totalSec) * totalWidth;
+            html += '<div class="ruler-tick minor" style="left:' + halfLeft + 'px;"></div>';
+          }
+        }
+        ruler.innerHTML = html;
+      }
+
+      /* ============================================================
+         更新缩放级别
+      ============================================================ */
+      function updateZoom() {
+        var slider = document.getElementById('zoomSlider');
+        state.zoomLevel = parseInt(slider.value);
+        // 概念 Demo — 缩放仅调整视觉参数，实际缩放重绘在正式版中实现
+        var tracks = document.getElementById('tracksScroll');
+        if (tracks) {
+          tracks.style.setProperty('--zoom-scale', state.zoomLevel / 8);
+        }
+      }
+
+      /* ============================================================
+         播放头拖拽 — 鼠标按下
+         @param {MouseEvent} e - 鼠标事件
+      ============================================================ */
+      function startDragPlayhead(e) {
+        e.preventDefault();
+        state.isDragging = true;
+        state.dragStartX = e.clientX;
+        state.dragStartPos = state.playheadPos;
+        document.addEventListener('mousemove', onDragPlayhead);
+        document.addEventListener('mouseup', stopDragPlayhead);
+      }
+
+      /* 播放头拖拽 — 鼠标移动 */
+      function onDragPlayhead(e) {
+        if (!state.isDragging) return;
+        var dx = e.clientX - state.dragStartX;
+        var newPos = state.dragStartPos + dx;
+        // 限制范围
+        newPos = Math.max(50, Math.min(newPos, 50 + 700));
+        state.playheadPos = newPos;
+        document.getElementById('playhead').style.left = newPos + 'px';
+        // 反算时间
+        var trackContent = document.querySelector('.track-content');
+        var totalWidth = trackContent ? trackContent.offsetWidth : 800;
+        state.currentTime = ((newPos - 50) / totalWidth) * state.duration;
+        state.currentTime = Math.max(0, Math.min(state.duration, state.currentTime));
+        // 更新进度条和时间码
+        var ratio = state.currentTime / state.duration;
+        document.getElementById('progressFill').style.width = (ratio * 100) + '%';
+        updateTimecode();
+      }
+
+      /* 播放头拖拽 — 鼠标释放 */
+      function stopDragPlayhead() {
+        state.isDragging = false;
+        document.removeEventListener('mousemove', onDragPlayhead);
+        document.removeEventListener('mouseup', stopDragPlayhead);
+      }
+
+      /* ============================================================
+         初始化 — DOM 加载后执行
+      ============================================================ */
+      function init() {
+        // 初始状态：小白模式
+        document.getElementById('app').classList.add('simple-mode');
+        // 渲染素材
+        renderMediaGrid();
+        // 生成标尺
+        buildTimeRuler();
+        // 初始化播放头
+        updatePlayhead();
+        // 初始化时间码
+        updateTimecode();
+        console.log('Nova Edit 概念版已就绪 — 新星剪辑 · 全球最强');
+      }
+
+      /* ---- 公开 API ---- */
+      return {
+        init: init,
+        switchMediaTab: switchMediaTab,
+        switchInspectorTab: switchInspectorTab,
+        toggleMode: toggleMode,
+        togglePlay: togglePlay,
+        goToStart: goToStart,
+        goToEnd: goToEnd,
+        stepBack: stepBack,
+        stepForward: stepForward,
+        seekProgress: seekProgress,
+        selectClip: selectClip,
+        onPropChange: onPropChange,
+        onMediaHover: onMediaHover,
+        exportVideo: exportVideo,
+        updateZoom: updateZoom,
+        updatePlayhead: updatePlayhead,
+        startDragPlayhead: startDragPlayhead
+      };
+    })();
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', NovaEdit.init);
+  </script>
+
+</body>
+</html>
